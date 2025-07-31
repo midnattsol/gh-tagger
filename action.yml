@@ -1,0 +1,45 @@
+name: 'Validate and Tag'
+description: 'Validates a version format and creates a Git tag'
+inputs:
+  version:
+    description: 'Version (e.g., 1.2.3, v2.0.0-rc.1)'
+    required: true
+  allow-empty-prefix:
+    description: 'Allow version without prefix (e.g., 1.0.0 instead of v1.0.0)'
+    required: false
+    default: 'false'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Validate version format
+      shell: bash
+      run: |
+        VERSION="${{ inputs.version }}"
+        ALLOW_EMPTY_PREFIX="${{ inputs.allow-empty-prefix }}"
+
+        # Regex for SemVer (with or without 'v' prefix)
+        if [[ "$ALLOW_EMPTY_PREFIX" == "true" ]]; then
+          REGEX='^(v)?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$'
+        else
+          REGEX='^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$'
+        fi
+
+        if ! [[ "$VERSION" =~ $REGEX ]]; then
+          echo "❌ Invalid version format: $VERSION"
+          echo "ℹ Valid examples: v1.0.0, 2.3.4-beta.1 (only if allow-empty-prefix=true)"
+          exit 1
+        fi
+
+        echo "✓ Valid version: $VERSION"
+
+    - name: Create Git tag
+      uses: actions/github-script@v6
+      with:
+        script: |
+          await github.rest.git.createRef({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            ref: `refs/tags/${{ inputs.version }}`,
+            sha: context.sha
+          });
