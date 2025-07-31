@@ -27,7 +27,7 @@ runs:
     - name: Run Python Tagger
       shell: bash
       run: |
-        python ${{ github.action_path }}/tagger.py \
+        python ${{ github.action_path }}/main.py \
           --level "${{ inputs.release-level }}" \
           --channel "${{ inputs.release-channel }}" \
           --sha "${{ github.sha }}" \
