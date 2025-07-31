@@ -12,6 +12,9 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Installing dependencies
+      shell: bash
+      run: pip3 install pygithub semver
     - name: Check libs installed in github runner
       shell: bash
       run: | 
