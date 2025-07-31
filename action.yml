@@ -36,10 +36,12 @@ runs:
       env:
         GITHUB_TOKEN: ${{ inputs.token }}      
       run: |
+        echo ${{ inputs.dry-run }}
+        DRY_RUN=$([[ ${{ inputs.dry-run }} = 'true' ]] && echo '--dry-run' || echo '')
         python ${{ github.action_path }}/main.py \
           --level "${{ inputs.release-level }}" \
           --channel "${{ inputs.release-channel }}" \
           --sha "${{ github.sha }}" \
           --repo "${{ github.repository }}" \
-          ${{ inputs.dry-run && '--dry-run' || '' }}
+          $DRY_RUN
       working-directory: ${{ github.action_path }}
