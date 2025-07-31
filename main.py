@@ -51,7 +51,7 @@ def get_latest_version(repo) -> Optional[semver.VersionInfo]:
         for tag in repo.get_tags():
             if tag.name.startswith('v'):
                 version_str = tag.name[1:]  # Elimina el 'v' inicial
-                if semver.VersionInfo.isvalid(version_str):
+                if semver.VersionInfo.is_valid(version_str):
                     return semver.VersionInfo.parse(version_str)
         return None
     except GithubException as e:
