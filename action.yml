@@ -12,6 +12,11 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Check libs installed in github runner
+      shell: bash
+      run: | 
+        python3 -c "import semver" 2>/dev/null && echo "Módulo semver instalado" || echo "Módulo semver NO instalado"
+        python3 -c "import github" 2>/dev/null && echo "Módulo github instalado" || echo "Módulo github NO instalado"
     - name: Validate version format
       shell: bash
       run: |
