@@ -97,7 +97,7 @@ def main():
     print(f"🚀 Nueva versión generada: {new_tag}")
     
     # Crear tag (a menos que sea dry-run)
-    if not args.dry_run and args.sha:
+    if not args.dry_run:
         try:
             commit = repo.get_commit("HEAD")
             repo.create_git_tag(
@@ -113,6 +113,7 @@ def main():
             sys.exit(1)
 
     else:
+        print("Ejecutando tagging en modo dry-run")
         print(f"new tag is: {new_tag}")
 
 if __name__ == "__main__":

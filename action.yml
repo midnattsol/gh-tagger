@@ -9,6 +9,10 @@ inputs:
     description: 'Canal: beta, rc, release'
     required: true
     default: 'release'
+  dry-run: 
+    description: Ejecuta el tagging imprimiendo los nuevos tags sin crearlos
+    required: false
+    default: 'false'
 
 runs:
   using: "composite"
@@ -32,4 +36,5 @@ runs:
           --channel "${{ inputs.release-channel }}" \
           --sha "${{ github.sha }}" \
           --repo "${{ github.repository }}"
+          --dry-run "${{ inputs.dry-run }}"
       working-directory: ${{ github.action_path }}
