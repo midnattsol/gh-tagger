@@ -36,6 +36,9 @@ def parse_args() -> argparse.Namespace:
         help='Canal de release (beta/rc para pre-releases)'
     )
     parser.add_argument(
+        '--sha',
+         help='SHA del commit a taggear')
+    parser.add_argument(
         '--dry-run',
         action='store_true',
         help='Simula la acción sin crear tags'
@@ -94,16 +97,16 @@ def main():
     print(f"🚀 Nueva versión generada: {new_tag}")
     
     # Crear tag (a menos que sea dry-run)
-    if not args.dry_run:
+    if not args.dry_run and args.sha:
         try:
             commit = repo.get_commit("HEAD")
             repo.create_git_tag(
                 tag=new_tag,
                 message=f"Release {new_tag}",
-                object=commit.sha,
+                object=args.sha,
                 type='commit'
             )
-            repo.create_git_ref(f"refs/tags/{new_tag}", commit.sha)
+            repo.create_git_ref(f"refs/tags/{new_tag}", args.sha)
             print(f"✅ Tag {new_tag} creado exitosamente")
         except GithubException as e:
             print(f"❌ Error al crear tag: {e}")
