@@ -37,7 +37,8 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         '--sha',
-         help='SHA del commit a taggear')
+         help='SHA del commit a taggear'
+    )
     parser.add_argument(
         '--dry-run',
         action='store_true',
