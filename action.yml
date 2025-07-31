@@ -19,6 +19,7 @@ inputs:
 
 env:
   GITHUB_TOKEN: ${{ inputs.token }}
+
 runs:
   using: "composite"
   steps:
