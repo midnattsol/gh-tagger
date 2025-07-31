@@ -13,6 +13,7 @@ inputs:
     description: Ejecuta el tagging imprimiendo los nuevos tags sin crearlos
     required: false
     default: 'false'
+    type: boolean
 
 runs:
   using: "composite"
