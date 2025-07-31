@@ -20,9 +20,9 @@ runs:
 
         # Regex for SemVer (with or without 'v' prefix)
         if [[ "$ALLOW_EMPTY_PREFIX" == "true" ]]; then
-          REGEX='^v?([0-9]\d*)\.([0-9]\d*)\.([0-9]\d*)(?:-(beta|rc)(?:\.\d+)?)?$'
+          REGEX='^v?([0-9]+)\.([0-9]+)\.([0-9]+)(-(beta|rc)(\.[0-9]+)?)?$'
         else
-          REGEX='^v([0-9]\d*)\.([0-9]\d*)\.([0-9]\d*)(?:-(beta|rc)(?:\.\d+)?)?$'
+          REGEX='^v([0-9]+)\.([0-9]+)\.([0-9]+)(-(beta|rc)(\.[0-9]+)?)?$'
         fi
 
         if ! [[ "$VERSION" =~ $REGEX ]]; then
