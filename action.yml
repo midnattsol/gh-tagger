@@ -15,6 +15,8 @@ inputs:
     default: 'false'
     type: boolean
 
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 runs:
   using: "composite"
   steps:
