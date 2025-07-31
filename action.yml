@@ -1,53 +1,35 @@
-name: 'Validate and Tag'
-description: 'Validates a version format and creates a Git tag'
+name: 'Release Tagger'
+description: 'Genera tags SemVer usando Python'
 inputs:
-  version:
-    description: 'Version (e.g., 1.2.3, v2.0.0-rc.1)'
+  release-level:
+    description: 'Nivel de release: major, minor, patch'
     required: true
-  allow-empty-prefix:
-    description: 'Allow version without prefix (e.g., 1.0.0 instead of v1.0.0)'
-    required: false
-    default: 'false'
+    default: 'patch'
+  release-channel:
+    description: 'Canal: beta, rc, release'
+    required: true
+    default: 'release'
 
 runs:
   using: "composite"
   steps:
-    - name: Installing dependencies
-      shell: bash
-      run: pip3 install pygithub semver
-    - name: Check libs installed in github runner
-      shell: bash
-      run: | 
-        python3 -c "import semver" 2>/dev/null && echo "Módulo semver instalado" || echo "Módulo semver NO instalado"
-        python3 -c "import github" 2>/dev/null && echo "Módulo github instalado" || echo "Módulo github NO instalado"
-    - name: Validate version format
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: Install dependencies
       shell: bash
       run: |
-        VERSION="${{ inputs.version }}"
-        ALLOW_EMPTY_PREFIX="${{ inputs.allow-empty-prefix }}"
+        pip install -r ${{ github.action_path }}/requirements.txt
+      working-directory: ${{ github.action_path }}
 
-        # Regex for SemVer (with or without 'v' prefix)
-        if [[ "$ALLOW_EMPTY_PREFIX" == "true" ]]; then
-          REGEX='^v?([0-9]+)\.([0-9]+)\.([0-9]+)(-(beta|rc)(\.[0-9]+)?)?$'
-        else
-          REGEX='^v([0-9]+)\.([0-9]+)\.([0-9]+)(-(beta|rc)(\.[0-9]+)?)?$'
-        fi
-
-        if ! [[ "$VERSION" =~ $REGEX ]]; then
-          echo "❌ Invalid version format: $VERSION"
-          echo "ℹ Valid examples: v1.0.0, 2.3.4-beta.1 (only if allow-empty-prefix=true)"
-          exit 1
-        fi
-
-        echo "✓ Valid version: $VERSION"
-
-    - name: Create Git tag
-      uses: actions/github-script@v6
-      with:
-        script: |
-          await github.rest.git.createRef({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            ref: `refs/tags/${{ inputs.version }}`,
-            sha: context.sha
-          });
+    - name: Run Python Tagger
+      shell: bash
+      run: |
+        python ${{ github.action_path }}/tagger.py \
+          --level "${{ inputs.release-level }}" \
+          --channel "${{ inputs.release-channel }}" \
+          --sha "${{ github.sha }}" \
+          --repo "${{ github.repository }}"
+      working-directory: ${{ github.action_path }}
