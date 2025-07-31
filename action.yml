@@ -40,6 +40,6 @@ runs:
           --level "${{ inputs.release-level }}" \
           --channel "${{ inputs.release-channel }}" \
           --sha "${{ github.sha }}" \
-          --repo "${{ github.repository }}"
+          --repo "${{ github.repository }}" \
           --dry-run "${{ inputs.dry-run }}"
       working-directory: ${{ github.action_path }}
