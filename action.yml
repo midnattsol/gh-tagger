@@ -20,7 +20,7 @@ inputs:
 outputs:
   new_tag:
     description: 'El nuevo tag generado'
-    value: ${{ steps.run_tagger.outputs.new_tag }}
+    value: ${{ steps.tagger.outputs.new_tag }}
 
 runs:
   using: "composite"
