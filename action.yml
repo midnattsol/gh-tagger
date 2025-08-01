@@ -37,6 +37,7 @@ runs:
       working-directory: ${{ github.action_path }}
 
     - name: Run Python Tagger
+      id: tagger
       shell: bash
       env:
         GITHUB_TOKEN: ${{ inputs.token }}      
