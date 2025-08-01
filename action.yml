@@ -17,6 +17,10 @@ inputs:
   token:
     required: true
 
+outputs:
+  new_tag:
+    description: 'El nuevo tag generado'
+
 runs:
   using: "composite"
   steps:
