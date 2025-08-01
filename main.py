@@ -58,8 +58,8 @@ def main():
                 type='commit'
             )
             repo.create_git_ref(f"refs/tags/{new_tag}", args.sha)
-            with open(os.environ['GITHUB_OUTPUT'], 'a') as gho:
-                print(f'new_tag={new_tag}', file=gho)
+            with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
+                fh.write(f'new_tag={new_tag}\n')
             print(f"✅ Tag creado")
         else:
             print(f"ℹ️ Dry-run: {new_tag}")
