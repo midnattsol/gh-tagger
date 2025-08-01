@@ -6,7 +6,7 @@ def parse_args():
     p = argparse.ArgumentParser(description="Generador de tags SemVer")
     p.add_argument('--repo', required=True)
     p.add_argument('--level', choices=['major','minor','patch'], default='patch')
-    p.add_argument('--channel', choices=['beta','rc','release'], default='release')
+    p.add_argument('--channel', choices=['beta','release-candidate','release'], default='release')
     p.add_argument('--sha', help='SHA del commit')
     p.add_argument('--dry-run', action='store_true')
     return p.parse_args()
@@ -31,16 +31,14 @@ def get_last_prerelease(repo, base_version, channel):
     return max_num
 
 def generate_new_version(args, repo):
-    base = get_version_base(repo)
+    base            = get_version_base(repo)
+    bumped_version  = getattr(base, f"bump_{args.level}")() if args.level else base
     
-    # Primero aplica el bump (major/minor/patch) siempre
-    bumped_version = getattr(base, f"bump_{args.level}")() if args.level else base
-    
-    # Luego maneja pre-release si es necesario
     if args.channel != "release":
-        core_version = str(bumped_version).split('-')[0]
-        last_num = get_last_prerelease(repo, core_version, args.channel)
-        return bumped_version.replace(prerelease=f"{args.channel}.{last_num + 1}")
+        channel_suffix  = 'rc' if args.channel == 'release-candidate' else args.channel
+        core_version    = str(bumped_version).split('-')[0]
+        last_num        = get_last_prerelease(repo, core_version, args.channel)
+        return bumped_version.replace(prerelease=f"{channel_suffix}.{last_num + 1}")
     return bumped_version
 
 def main():

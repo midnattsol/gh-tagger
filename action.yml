@@ -4,11 +4,9 @@ inputs:
   release-level:
     description: 'Nivel de release: major, minor, patch'
     required: true
-    default: 'patch'
   release-channel:
-    description: 'Canal: beta, rc, release'
+    description: 'Channel: release-candidate, release'
     required: true
-    default: 'release'
   dry-run: 
     description: Ejecuta el tagging imprimiendo los nuevos tags sin crearlos
     required: false
