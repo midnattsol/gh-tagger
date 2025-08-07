@@ -1,11 +1,11 @@
 name: 'Release Tagger'
 description: 'Genera tags SemVer usando Python'
 inputs:
-  release-level:
+  bump:
     description: 'Nivel de release: major, minor, patch'
     required: true
-  release-channel:
-    description: 'Channel: release-candidate, release'
+  channel:
+    description: 'Channel: beta, release-candidate, release'
     required: true
   dry-run: 
     description: Ejecuta el tagging imprimiendo los nuevos tags sin crearlos
@@ -42,8 +42,8 @@ runs:
       run: |
         DRY_RUN=$([[ ${{ inputs.dry-run }} = 'true' ]] && echo '--dry-run' || echo '')
         python ${{ github.action_path }}/main.py \
-          --level "${{ inputs.release-level }}" \
-          --channel "${{ inputs.release-channel }}" \
+          --bump "${{ inputs.bump }}" \
+          --channel "${{ inputs.channel }}" \
           --sha "${{ github.sha }}" \
           --repo "${{ github.repository }}" \
           $DRY_RUN
