@@ -8,7 +8,7 @@ inputs:
     required: true
     default: 'patch'
   channel:
-    description: 'Canal de release: release-candidate, release'
+    description: 'Canal de release: beta, release-candidate, release'
     required: true
     default: 'release'
   dry-run:
