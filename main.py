@@ -1,109 +1,98 @@
 #!/usr/bin/env python3
 from github import Github, GithubException
 import semver, argparse, os, sys
-from typing import Optional
+from typing import Optional, List
 
-def parse_args():
-    p = argparse.ArgumentParser(description="Generador de tags SemVer")
-    p.add_argument('--repo', required=True)
-    p.add_argument('--bump', choices=['major','minor','patch'], default='patch')
-    p.add_argument('--channel', choices=['beta','release-candidate','release'], default='release')
-    p.add_argument('--sha', help='SHA del commit')
-    p.add_argument('--dry-run', action='store_true')
-    return p.parse_args()
+class ReleaseTagger:
+    def __init__(self, repo: str, token: str):
+        self.gh = Github(token)
+        self.repo = self.gh.get_repo(repo)
+        self.all_tags = self._load_valid_tags()
 
-def get_base_version_by_channel(repo, channel: str) -> Optional[semver.VersionInfo]:
-    """
-    Encuentra la versión base adecuada según el canal.
-    Jerarquía: release -> rc -> beta -> release
-    """
-    tags = sorted(
-        [t for t in repo.get_tags() if t.name.startswith('v')],
-        key=lambda t: semver.VersionInfo.parse(t.name[1:]) if semver.VersionInfo.isvalid(t.name[1:]) else semver.VersionInfo.parse("0.0.0"),
-        reverse=True
-    )
+    def _load_valid_tags(self) -> List[dict]:
+        """Carga todos los tags válidos ordenados por versión (más reciente primero)"""
+        valid_tags = []
+        for tag in self.repo.get_tags():
+            try:
+                version_str = tag.name[1:] if tag.name.startswith('v') else tag.name
+                ver = semver.VersionInfo.parse(version_str)
+                valid_tags.append({
+                    'name': tag.name,
+                    'version': ver,
+                    'object': tag
+                })
+            except ValueError:
+                continue
+        return sorted(valid_tags, key=lambda x: x['version'], reverse=True)
 
-    for tag in tags:
+    def _get_latest_stable(self) -> Optional[semver.VersionInfo]:
+        """Obtiene la última versión estable"""
+        for tag in self.all_tags:
+            if not tag['version'].prerelease:
+                return tag['version']
+        return semver.VersionInfo.parse("0.1.0")
+
+    def _get_latest_rc(self) -> Optional[semver.VersionInfo]:
+        """Obtiene la última RC de la próxima versión estable"""
+        latest_stable = self._get_latest_stable()
+        for tag in self.all_tags:
+            if tag['version'].prerelease and tag['version'].prerelease.startswith('rc'):
+                if tag['version'].major == latest_stable.major and \
+                   tag['version'].minor == latest_stable.minor and \
+                   tag['version'].patch == latest_stable.patch:
+                    return tag['version']
+        return None
+
+    def generate_new_version(self, bump_type: str, release_channel: str) -> semver.VersionInfo:
+        """Genera la nueva versión según el tipo de release"""
+        base_version = self._get_latest_stable()
+        
+        # Incrementar según bump-type
+        bumped_version = getattr(base_version, f"bump_{bump_type}")()
+
+        if release_channel == "release-candidate":
+            latest_rc = self._get_latest_rc()
+            rc_number = latest_rc.prerelease.split('.')[1] + 1 if latest_rc else 1
+            return bumped_version.replace(prerelease=f"rc.{rc_number}")
+        
+        return bumped_version  # Versión estable
+
+    def create_tag(self, version: semver.VersionInfo, commit_sha: str):
+        """Crea el tag en GitHub"""
+        tag_name = f"v{version}"
         try:
-            ver = semver.VersionInfo.parse(tag.name[1:])
-            match channel:
-                case 'beta':
-                    if not ver.prerelease:  # Basado en última release estable
-                        return ver
-                case 'release-candidate':
-                    if ver.prerelease and ver.prerelease.startswith('beta'):  # Basado en última beta
-                        return ver
-                case 'release':
-                    if ver.prerelease and ver.prerelease.startswith('rc'):  # Basado en última RC
-                        return ver
-        except ValueError:
-            continue
-    
-    return semver.VersionInfo(major=0, minor=1, patch=0)  # Versión inicial
-
-def get_last_prerelease_number(repo, base_version: str, channel: str) -> int:
-    """Obtiene el último número de prerelease para el canal específico"""
-    max_num = 0
-    channel_prefix = 'rc' if channel == 'release-candidate' else channel
-    
-    for tag in repo.get_tags():
-        if not tag.name.startswith(f"v{base_version}-{channel_prefix}."):
-            continue
-        
-        try:
-            prerelease = semver.VersionInfo.parse(tag.name[1:]).prerelease
-            if prerelease:
-                num = int(prerelease.split('.')[1])
-                max_num = max(max_num, num)
-        except (ValueError, IndexError):
-            continue
-    
-    return max_num
-
-def generate_new_version(args, repo) -> semver.VersionInfo:
-    base_version = get_base_version_by_channel(repo, args.channel)
-    
-    # Aplicar bump (major, minor, patch)
-    bumped_version = getattr(base_version, f"bump_{args.bump}")()
-    
-    # Manejar prereleases
-    if args.channel != "release":
-        channel_suffix = 'rc' if args.channel == 'release-candidate' else args.channel
-        core_version = str(bumped_version).split('-')[0]
-        last_num = get_last_prerelease_number(repo, core_version, args.channel)
-        return bumped_version.replace(prerelease=f"{channel_suffix}.{last_num + 1}")
-    
-    return bumped_version
-
-def main():
-    args = parse_args()
-    try:
-        repo = Github(os.getenv("GITHUB_TOKEN")).get_repo(args.repo)
-        new_version = generate_new_version(args, repo)
-        new_tag = f"v{new_version}"
-        
-        print(f"🔍 Versión base: {get_base_version_by_channel(repo, args.channel)}")
-        print(f"🚀 Nuevo tag: {new_tag}")
-        
-        if not args.dry_run:
-            repo.create_git_tag(
-                tag=new_tag,
-                message=f"Release {new_tag}",
-                object=args.sha,
+            self.repo.create_git_tag(
+                tag=tag_name,
+                message=f"Auto-generated release: {tag_name}",
+                object=commit_sha,
                 type='commit'
             )
-            repo.create_git_ref(f"refs/tags/{new_tag}", args.sha)
-            
-            # Set output for GitHub Actions
-            with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
-                fh.write(f'new_tag={new_tag}\n')
-            
-            print(f"✅ Tag creado exitosamente")
-        else:
-            print("ℹ️ Modo dry-run: no se creó el tag")
-            
+            self.repo.create_git_ref(f"refs/tags/{tag_name}", commit_sha)
+            return tag_name
+        except GithubException as e:
+            raise RuntimeError(f"GitHub API error: {e.data.get('message', str(e))}")
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--repo', required=True)
+    parser.add_argument('--bump-type', choices=['major','minor','patch'], default='patch')
+    parser.add_argument('--release-channel', choices=['release-candidate','release'], default='release-candidate')
+    parser.add_argument('--commit-sha', required=True)
+    args = parser.parse_args()
+
+    try:
+        tagger = ReleaseTagger(args.repo, os.getenv("GITHUB_TOKEN"))
+        new_version = tagger.generate_new_version(args.bump_type, args.release_channel)
+        new_tag = tagger.create_tag(new_version, args.commit_sha)
+        
+        # Set GitHub Actions output
+        with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+            f.write(f'new-tag={new_tag}\n')
+        
+        print(f"✅ Tag creado: {new_tag}")
+        sys.exit(0)
     except Exception as e:
-        print(f"❌ Error crítico: {str(e)}", file=sys.stderr)
+        print(f"❌ Error: {str(e)}", file=sys.stderr)
         sys.exit(1)
 
 if __name__ == "__main__":
