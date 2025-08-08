@@ -18,10 +18,11 @@ def get_version_base(repo):
                 if not ver.prerelease: return ver
 
             except ValueError: continue
-    return semver.VersionInfo(major=0, minor=1, patch=0)
+    return False
 
 def generate_new_version(args, repo):
     base            = get_version_base(repo)
+    if base == False: return semver.VersionInfo(major=0, minor=1, patch=0)
     bumped_version  = getattr(base, f"bump_{args.bump}")() if args.bump else base
     
     return bumped_version
