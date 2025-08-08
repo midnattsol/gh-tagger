@@ -1,23 +1,15 @@
-name: 'SemVer Tagger'
-description: 'Genera tags SemVer automáticamente con control de canales'
-author: 'Midnattsol'
-
+name: 'Release Tagger'
+description: 'Genera tags SemVer usando Python'
 inputs:
   bump:
-    description: 'Nivel de versionado: major, minor, patch'
+    description: 'Nivel de release: major, minor, patch'
     required: true
-    default: 'patch'
-  channel:
-    description: 'Canal de release: beta, release-candidate, release'
-    required: true
-    default: 'release'
-  dry-run:
-    description: 'Simula el proceso sin crear tags realmente'
+  dry-run: 
+    description: Ejecuta el tagging imprimiendo los nuevos tags sin crearlos
     required: false
     default: false
     type: boolean
-  github-token:
-    description: 'Token de GitHub para autenticación'
+  token:
     required: true
 
 outputs:
@@ -36,20 +28,19 @@ runs:
     - name: Install dependencies
       shell: bash
       run: |
-        python -m pip install --upgrade pip
-        pip install PyGithub semver
+        pip install -r ${{ github.action_path }}/requirements.txt
       working-directory: ${{ github.action_path }}
 
-    - name: Run SemVer Tagger
+    - name: Run Python Tagger
       id: tagger
       shell: bash
       env:
-        GITHUB_TOKEN: ${{ inputs.github-token }}
+        GITHUB_TOKEN: ${{ inputs.token }}      
       run: |
+        DRY_RUN=$([[ ${{ inputs.dry-run }} = 'true' ]] && echo '--dry-run' || echo '')
         python ${{ github.action_path }}/main.py \
           --bump "${{ inputs.bump }}" \
-          --channel "${{ inputs.channel }}" \
           --sha "${{ github.sha }}" \
           --repo "${{ github.repository }}" \
-          ${{ inputs.dry-run && '--dry-run' || '' }}
+          $DRY_RUN
       working-directory: ${{ github.action_path }}

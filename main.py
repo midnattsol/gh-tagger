@@ -6,37 +6,25 @@ def parse_args():
     p = argparse.ArgumentParser(description="Generador de tags SemVer")
     p.add_argument('--repo', required=True)
     p.add_argument('--bump', choices=['major','minor','patch'], default='patch')
-    p.add_argument('--channel', choices=['beta','release-candidate','release'], default='release')
     p.add_argument('--sha', help='SHA del commit')
     p.add_argument('--dry-run', action='store_true')
     return p.parse_args()
 
-def get_version_base(repo, channel):
+def get_version_base(repo):
     for tag in repo.get_tags():
         if tag.name.startswith('v'):
             try:
                 ver = semver.VersionInfo.parse(tag.name[1:])
-                match channel:
-                case 'release':
-                    if not ver.prerelease: return ver
-                case 'release-candidate':
-                    if ver.prerelease and ver.prerelease.startswith('rc'): return ver
-                case 'beta':
-                    if ver.prerelease and ver.prerelease.startswith('beta'): return ver
+                if not ver.prerelease: return ver
+
             except ValueError: continue
     return semver.VersionInfo(major=0, minor=1, patch=0)
 
 def generate_new_version(args, repo):
     base            = get_version_base(repo)
-    match args.channel:
-        case 'release':
-            return getattr(base, f"bump_{args.bump}")()
-        case 'release-candidate':
-            return base.bump_prerelease('rc')
-        case 'beta':
-            return base.bump_prerelease('beta')
-        case _:
-            sys.exit(1)
+    bumped_version  = getattr(base, f"bump_{args.bump}")() if args.bump else base
+    
+    return bumped_version
 
 def main():
     args = parse_args()
